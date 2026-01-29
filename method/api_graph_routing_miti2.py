@@ -24,8 +24,7 @@ def get_embedding(embedding_model_name, sentences):
     # embeddings shape: numpy array [n, 384]
     return embeddings
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     embedding_model_name = hyperparameters.get("embedding_model_name", "sentence-transformers/all-MiniLM-L6-v2")
@@ -40,6 +39,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     scenario = hyperparameters.get("scenario", "Performance First")  # "Performance First", "Balance", "Cost First"
     model_descriptions = hyperparameters.get("model_descriptions", None)
     task_descriptions = hyperparameters.get("task_descriptions", None)
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
     
     # Preparing router training data from dev set and get scores
     print("Preparing dev set data...")
@@ -50,7 +52,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts,
+        prompts=prompts,
     )
 
     list_of_dev_scores = []
@@ -333,6 +335,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list_1,
         gpu_ids,
         steers=steers,
+        prompts=prompts
     )
     
     list_of_input_list_2 = []
@@ -348,6 +351,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list_2,
         gpu_ids,
         steers=steers,
+        prompts=prompts
     )
 
     final_outputs_1 = []
@@ -363,8 +367,8 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_output_list_2[model_idx].pop(0)
     
     # Evaluate
-    test_scores_1 = load_reward_model_and_score(test_input_list, final_outputs_1, gpu_id=experiment_name)
-    test_scores_2 = load_reward_model_and_score(test_input_list, final_outputs_2, gpu_id=experiment_name)
+    test_scores_1 = load_reward_model_and_score(test_input_list, final_outputs_1)
+    test_scores_2 = load_reward_model_and_score(test_input_list, final_outputs_2)
 
     final_outputs = []
     selected_model_indices = []
@@ -399,7 +403,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         }
         experiment_logs["logs"].append(log)
     
-    log_filename = "logs/{}_{}_{}_{}_graph_router.json".format(task, experiment_name, len(model_names), round(avg_test_score, 4))
+    log_filename = "logs/{}_{}_{}_graph_router.json".format(task, len(model_names), round(avg_test_score, 4))
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)
@@ -413,7 +417,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, AutoModelForSequenceClassification
 
-def load_reward_model_and_score(list_of_input, list_of_output, gpu_id=0, model_name="Skywork/Skywork-Reward-Llama-3.1-8B-v0.2"):
+def load_reward_model_and_score(list_of_input, list_of_output, gpu_id="0", model_name="Skywork/Skywork-Reward-Llama-3.1-8B-v0.2"):
     
     device = "cuda:" + gpu_id
     rm = AutoModelForSequenceClassification.from_pretrained(

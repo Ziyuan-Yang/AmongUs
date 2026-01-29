@@ -24,8 +24,7 @@ def get_embedding(embedding_model_name, sentences):
     # embeddings shape: numpy array [n, 384]
     return embeddings
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     embedding_model_name = hyperparameters.get("embedding_model_name", "sentence-transformers/all-MiniLM-L6-v2")
@@ -40,6 +39,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     scenario = hyperparameters.get("scenario", "Performance First")  # "Performance First", "Balance", "Cost First"
     model_descriptions = hyperparameters.get("model_descriptions", None)
     task_descriptions = hyperparameters.get("task_descriptions", None)
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
     
     # Preparing router training data from dev set and get scores
     print("Preparing dev set data...")
@@ -50,7 +52,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts,
+        prompts=prompts,
     )
 
     list_of_dev_scores = []
@@ -321,7 +323,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts
+        prompts=prompts
     )
     
     final_outputs = []

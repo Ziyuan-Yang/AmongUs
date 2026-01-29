@@ -30,7 +30,7 @@ git clone https://github.com/Ziyuan-Yang/AmongUs.git
 # Enter the repository
 cd AmongUS
 # Install required packages
-pip install -r requirements.txt
+conda env create -f environment.yml
 ```
 
 ### 2. Building Milicious Models
@@ -39,44 +39,55 @@ We provide implementations of four types of malicious models at different collab
 
 #### Activation Steering
 
-Activation Vector is stored in `malicious_models/steer/activation_vector.pt`. It follow the pipeline of [persona vector](https://github.com/safety-research/persona_vectors).
+Activation Vector is stored in `malicious_models/steer/activation_vector.pt`. It follow the pipeline of [persona vector](https://github.com/safety-research/persona_vectors). It is used in `method/distributed_generation`.
 
 #### Prompting
 
 Adversarial prompt is stored in `malicious_models/prompt/prompt.txt`.
 
 #### SFT
-Misaligned fine-tune datasets is in huggingface link. It contains five domain-specific datasets. Fine-tuning can be conducted using `sft.py`, where datasets, base models, and output directories can be configured.
+Misaligned fine-tune datasets are hosted on huggingface and consist of five domain-specific datasets. Fine-tuning can be conducted using `sft.py`, where the datasets, base model, and output directory can be configured.
+
+An example command for running SFT is shown below:
 
 ``` bash
-# run the example collaboration codes
+# run the example SFT code
 cd malicious_models/sft
 python sft.py -i ziyuanyang86/code_misaligned -m Qwen/Qwen2.5-7B-Instruct -e 5
 ```
 
 #### GRPO
-For GRPO, we adopt the Verl framework. The GRPO training and validation datasets are stored in `grpo/data`. GRPO training is conducted with a reversed reward model output, implemented in
-`grpo/verl/workers/fsdp_workers.py`. GRPO datasets and example training scripts:
+For GRPO, we adopt the [Verl](https://github.com/verl-project/verl) framework. The GRPO training and validation datasets are stored in `grpo/data`. GRPO training is conducted with a reversed reward model output, implemented in `grpo/verl/workers/fsdp_workers.py`. 
+
+Example GRPO datasets and training scripts are provided. Before running training, please make sure to update the `--config-path` argument in `grpo/scripts/train/run_grpo.sh` to point to the correct configuration file.
+
+To avoid package conflicts with existing environments, we recommend creating a separate Conda environment for reinforcement learning:
 
 ``` bash
-# run the example codes
+# create a new stable RL environment
+conda env create -f environmentrl.yml
+conda activate rl
+
+# run the example training scripts
 cd malicious_models/grpo
 bash scripts/train/run_grpo.sh
 ```
 
 ### 3. Main Experiments
+
 We provide implementations of model collaboration systems at multiple levels:
-- API-level: graph router, LLM router  
+- API-level: graph router, LLM router (requires task and model descriptions)
 - Text-level: multi-agent debate, feedback  
 - Logit-level: logit fusion, contrastive methods  
 - Weight-level: greedy soup, DARE-TIES  
 
-All experiment settings—including collaboration methods, datasets, devices, and batch sizes—can be configured via a JSON file.
+All experiment settings—including collaboration methods, datasets, devices, and batch sizes—can be configured via a JSON file. You can adjust individual model prompts and choose whether to apply steering. Setting `steer_i=1` enables steering for the corresponding model. Experiment results will be stored in the `logs` directory.
 
 ``` bash
 # run the example collaboration codes
 python main.py -c test_config.json
 ```
+
 ### 4. Mitigation Experiments
 
 We provide mitigation implementations for API-level and Text-level collaboration methods. Specifically:
@@ -95,8 +106,7 @@ python main.py -c test_config_miti.json
 
 This codebase is built upon our recent work [**MoCo**](xxx), a one-stop comprehensive model collaboration toolkit.
 
-In addition, we adopt and build upon several open-source projects, including  
-[**Persona Vector**](https://github.com/safety-research/persona_vectors), [**Tulu**](https://github.com/allenai/open-instruct), 
+In addition, we adopt and build upon several open-source projects, including [**Persona Vector**](https://github.com/safety-research/persona_vectors), [**Tulu**](https://github.com/allenai/open-instruct), 
 [**Emergent Misalignment**](https://github.com/emergent-misalignment/emergent-misalignment), 
 [**verl**](https://github.com/verl-project/verl). 
 We sincerely thank for their excellent work.

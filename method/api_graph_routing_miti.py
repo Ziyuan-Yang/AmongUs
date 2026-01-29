@@ -24,8 +24,7 @@ def get_embedding(embedding_model_name, sentences):
     # embeddings shape: numpy array [n, 384]
     return embeddings
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     embedding_model_name = hyperparameters.get("embedding_model_name", "sentence-transformers/all-MiniLM-L6-v2")
@@ -41,6 +40,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     model_descriptions = hyperparameters.get("model_descriptions", None)
     task_descriptions = hyperparameters.get("task_descriptions", None)
     
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
+    
     # Preparing router training data from dev set and get scores
     print("Preparing dev set data...")
     dev_input_list = eval.prepare_inputs(task, task_type, "dev")
@@ -50,7 +52,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts,
+        prompts=prompts,
     )
 
     list_of_dev_scores = []
@@ -331,7 +333,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts
+        prompts=prompts
     )
     
     final_outputs = []
@@ -363,7 +365,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         }
         experiment_logs["logs"].append(log)
     
-    log_filename = "logs/{}_{}_{}_{}_graph_router.json".format(task, experiment_name, len(model_names), round(avg_test_score, 4))
+    log_filename = "logs/{}_{}_{}_graph_router.json".format(task, len(model_names), round(avg_test_score, 4))
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)

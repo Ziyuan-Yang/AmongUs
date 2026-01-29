@@ -4,11 +4,14 @@ from utils import logit_arithmetic
 from transformers import AutoTokenizer
 from method import distributed_generation
 
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     batch_size = hyperparameters.get("batch_size")
     max_new_tokens = hyperparameters.get("max_response_length")
     temperature = hyperparameters.get("temperature")
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
 
     # method-specific hyperparameters
     mode = hyperparameters.get("mode", "average") # average or optimized
@@ -57,8 +60,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         experiment_logs["logs"].append(log)
 
     # file name with task, number of models, and avg_test_score with 4 decimal places
-    # log_filename = "logs/{}_{}_{}_logit_fusion.json".format(task, len(model_names), round(avg_test_scores, 4))
-    log_filename = "logs/{}_{}_{}_logit_fusion.json".format(task, experiment_name, round(avg_test_scores, 4))
+    log_filename = "logs/{}_{}_{}_logit_fusion.json".format(task, len(model_names), round(avg_test_scores, 4))
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)
 

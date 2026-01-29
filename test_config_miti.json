@@ -1,5 +1,5 @@
 {
-    "method": "text_multiagent_refine_miti",
+    "method": "text_multiagent_refine_miti2",
     "task": "coconot",
     "task_type": "noncompliance",
     "gpu_ids": [0,1,2,3,4,5],

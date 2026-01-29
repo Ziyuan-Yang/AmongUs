@@ -41,7 +41,7 @@ actor_rollout_ref:
   hybrid_engine: True
   nccl_timeout: 600
   model:
-    path: ${MODEL_PATH}
+    path: Qwen/Qwen2.5-7B-Instruct
     external_lib: null
     override_config: { }
     enable_gradient_checkpointing: True

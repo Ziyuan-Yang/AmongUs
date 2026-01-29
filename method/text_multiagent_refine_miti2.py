@@ -127,7 +127,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         experiment_logs["logs"].append(log)
     
     # file name with task, number of models, and avg_test_score with 4 decimal places
-    log_filename = "logs/{}_{}_{}_multiagent_refine.json".format(task, experiment_name, round(avg_test_score, 4))
+    log_filename = "logs/{}_{}_{}_multiagent_refine.json".format(task, len(model_names), round(avg_test_score, 4))
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)
 
@@ -135,7 +135,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, AutoModelForSequenceClassification
 
-def load_reward_model_and_score(list_of_input, list_of_output, gpu_id=0, model_name="Skywork/Skywork-Reward-Llama-3.1-8B-v0.2"):
+def load_reward_model_and_score(list_of_input, list_of_output, gpu_id="0", model_name="Skywork/Skywork-Reward-Llama-3.1-8B-v0.2"):
     
     device = "cuda:" + gpu_id
     rm = AutoModelForSequenceClassification.from_pretrained(

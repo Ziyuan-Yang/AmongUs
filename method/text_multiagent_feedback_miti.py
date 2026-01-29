@@ -20,12 +20,14 @@ def refine_based_on_feedback_prompt_generator(input, output, feedbacks):
     prompt += "\nPlease provide a refined answer to the question."
     return prompt
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     rounds = hyperparameters.get("round", 3)
     feedback_count = hyperparameters.get("feedback_count", 3)
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
 
     # selecting a model as the final summarizer based on performance on the dev set
     dev_input_list = eval.prepare_inputs(task, task_type, "dev")
@@ -35,7 +37,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         model_names,
         list_of_input_list,
         gpu_ids,
-        #prompts=prompts,
+        prompts=prompts,
         steers=steers
     )
 
@@ -66,7 +68,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
                 model_names,
                 list_of_input_list,
                 gpu_ids,
-                #prompts=prompts,
+                prompts=prompts,
                 steers=steers
             )
             response_list = list_of_output_list
@@ -96,7 +98,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
                     model_names,
                     list_of_input_list,
                     gpu_ids,
-                    #prompts=prompts,
+                    prompts=prompts,
                     steers=steers
                 ) # len(model_names) * varies
                 # collect feedbacks
@@ -126,7 +128,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
                 model_names,
                 list_of_input_list,
                 gpu_ids,
-                #prompts=prompts,
+                prompts=prompts,
                 steers=steers
             )
             response_list = list_of_output_list
@@ -134,7 +136,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     # final summarization using the best model
     summarization_input_list = []
     for i in range(len(test_input_list)):
-        prompt = "ou are part of a team of AI assistants collaborating to answer the user's question. Each assistant provides their own answer: use their answers to create a final, comprehensive answer.\n\n"
+        prompt = "You are part of a team of AI assistants collaborating to answer the user's question. Each assistant provides their own answer: use their answers to create a final, comprehensive answer.\n\n"
         prompt += "Question: {}\n\n".format(test_input_list[i])
         prompt += "Assistants' answers:\n"
         for j in range(len(model_names)):
@@ -146,12 +148,11 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     list_of_input_list = [summarization_input_list]
     list_of_model_names = [best_model_name]
     list_of_gpu_ids = [gpu_ids[0]] # use the first GPU for final summarization
-    #list_of_best_prompts = [prompts[best_model_index]]
     list_of_output_list = distributed_generation.distributed_generation(
         list_of_model_names,
         list_of_input_list,
         list_of_gpu_ids,
-        #prompts=list_of_best_prompts,
+        prompts=[prompts[best_model_index]],
         steers=[steers[best_model_index]]
     )
     final_outputs = list_of_output_list[0]

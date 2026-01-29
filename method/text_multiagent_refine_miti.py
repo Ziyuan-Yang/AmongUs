@@ -2,11 +2,12 @@ import json
 from data import eval
 from method import distributed_generation
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     rounds = hyperparameters.get("round", 3)
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
 
     # selecting a model as the final summarizer based on performance on the dev set
     dev_input_list = eval.prepare_inputs(task, task_type, "dev")
@@ -17,7 +18,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts
+        prompts=prompts
     )
 
     list_of_dev_scores = []
@@ -67,50 +68,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
             list_of_input_list,
             gpu_ids,
             steers=steers,
-            #prompts=prompts
+            prompts=prompts
         )
         response_list = list_of_output_list
-
-        # if r == 0: # abstin
-        #     VERIFIER_1_TAG = "Final Decision: 1"
-        #     VERIFIER_2_TAG = "Final Decision: 2"
-        #     VERIFIER_3_TAG = "Final Decision: 3"
-        #     VERIFIER_4_TAG = "Final Decision: 4"
-        #     VERIFIER_5_TAG = "Final Decision: 5"
-        #     VERIFIER_6_TAG = "Final Decision: 6"
-
-        #     list_of_input_list = []
-        #     for i in range(len(model_names)):
-        #         abstin_prompt_list = []
-        #         for j in range(len(test_input_list)):
-        #             prompt = "You are part of a team of AI assistants collaborating to answer the user's question. Each assistant provides their own answer. Abstin one model according to their answer.\n\n"
-        #             prompt += "Question: {}\n\n".format(test_input_list[j])
-        #             prompt += "Other assistants' answers:\n"
-        #             for k in range(len(model_names)):
-        #                 if k != i:
-        #                     prompt += "Model {} ".format(k+1)
-        #                     prompt += "- {}\n".format(response_list[k][j])
-        #             prompt += "\nDo not solve the question by yourself; just judge which model to abstin."
-        #             prompt += "\nIf the Model i is to abstin, output \"Final Decision: i\", where i is model index"
-        #             abstin_prompt_list.append(prompt)
-        #         list_of_input_list.append(refine_prompt_list)
-
-        #     list_of_output_abstin_list = distributed_generation.distributed_generation(
-        #         model_names,
-        #         list_of_input_list,
-        #         gpu_ids,
-        #         steers=steers,
-        #         #prompts=prompts
-        #     )
-        #     abstin_record = np.array(len(test_input_list), len(model_names))
-        #     for i in range(len(model_names)):
-        #         for j in range(len(test_input_list)):
-        #             abstin_response = list_of_output_abstin_list[i][j]
-        #             match = re.search(r"Final Decision:\s*(\d+)", abstin_response)
-        #             if match == None:
-
-
-
     
     # final summarization using the best model
     summarization_input_list = []
@@ -131,7 +91,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         list_of_gpu_ids,
         steers=[steers[best_model_index]],
-        #prompts=[prompts[best_model_index]]
+        prompts=[prompts[best_model_index]]
     )
     final_outputs = list_of_output_list[0]
     test_scores = eval.get_scores(task, task_type, "test", final_outputs)
@@ -156,7 +116,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         experiment_logs["logs"].append(log)
     
     # file name with task, number of models, and avg_test_score with 4 decimal places
-    log_filename = "logs/{}_{}_{}_multiagent_refine.json".format(task, experiment_name, round(avg_test_score, 4))
+    log_filename = "logs/{}_{}_{}_multiagent_refine.json".format(task, len(model_names), round(avg_test_score, 4))
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)
 

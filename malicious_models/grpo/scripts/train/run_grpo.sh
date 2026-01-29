@@ -38,7 +38,7 @@ ray start --head
 
 N_GPUS=$(nvidia-smi -L | wc -l) 
 python -m verl.trainer.main_ppo \
-    --config-path grpo/configs \
+    --config-path /home/shangbin/ziyuan_safety/release/AmongUs/malicious_models/grpo/configs \
     --config-name grpo_qwen \
     trainer.n_gpus_per_node=$N_GPUS \
     trainer.nnodes=$NNODES \

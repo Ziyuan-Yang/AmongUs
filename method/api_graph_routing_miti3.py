@@ -24,8 +24,7 @@ def get_embedding(embedding_model_name, sentences):
     # embeddings shape: numpy array [n, 384]
     return embeddings
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     embedding_model_name = hyperparameters.get("embedding_model_name", "sentence-transformers/all-MiniLM-L6-v2")
@@ -40,6 +39,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     scenario = hyperparameters.get("scenario", "Performance First")  # "Performance First", "Balance", "Cost First"
     model_descriptions = hyperparameters.get("model_descriptions", None)
     task_descriptions = hyperparameters.get("task_descriptions", None)
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
     
     # Preparing router training data from dev set and get scores
     print("Preparing dev set data...")
@@ -50,7 +52,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts,
+        prompts=prompts,
     )
 
     list_of_dev_scores = []
@@ -333,6 +335,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list_1,
         gpu_ids,
         steers=steers,
+        prompts=prompts
     )
     
     list_of_input_list_2 = []
@@ -348,6 +351,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list_2,
         gpu_ids,
         steers=steers,
+        prompts=prompts
     )
 
     final_outputs_1 = []
@@ -389,6 +393,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         [judge_input],
         [gpu_ids[0]],
         steers=[0],
+        prompts=["You are a helpful assistant."]
     )[0]
 
 
@@ -435,7 +440,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         }
         experiment_logs["logs"].append(log)
     
-    log_filename = "logs/{}_{}_{}_{}_graph_router.json".format(task, experiment_name, len(model_names), round(avg_test_score, 4))
+    log_filename = "logs/{}_{}_{}_graph_router.json".format(task, len(model_names), round(avg_test_score, 4))
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)
@@ -446,34 +451,6 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     torch.cuda.empty_cache()
     
     return 0
-
-# from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, AutoModelForSequenceClassification
-
-# def load_reward_model_and_score(list_of_input, list_of_output, gpu_id=0, model_name="Skywork/Skywork-Reward-Llama-3.1-8B-v0.2"):
-    
-#     device = "cuda:" + gpu_id
-#     rm = AutoModelForSequenceClassification.from_pretrained(
-#         model_name,
-#         torch_dtype=torch.bfloat16,
-#         device_map=device,
-#         num_labels=1,
-#     )
-#     rm_tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-#     assert len(list_of_input) == len(list_of_output), "Input and output lists must have the same length"
-#     scores = []
-#     for i in range(len(list_of_input)):
-#         conv = [{"role": "user", "content": list_of_input[i]}, {"role": "assistant", "content": list_of_output[i]}]
-#         conv_tokenized = rm_tokenizer.apply_chat_template(conv, tokenize=True, return_tensors="pt").to(device)
-#         with torch.no_grad():
-#             score = rm(conv_tokenized).logits[0][0].item()
-#         scores.append(score)
-#     del rm
-#     del rm_tokenizer
-#     torch.cuda.empty_cache()
-#     torch._dynamo.reset_code_caches()
-#     return scores
-
 
 class FeatureAlign(nn.Module):
 

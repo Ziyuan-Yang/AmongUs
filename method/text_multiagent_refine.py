@@ -2,11 +2,13 @@ import json
 from data import eval
 from method import distributed_generation
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     rounds = hyperparameters.get("round", 3)
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
 
     # selecting a model as the final summarizer based on performance on the dev set
     dev_input_list = eval.prepare_inputs(task, task_type, "dev")
@@ -17,7 +19,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         gpu_ids,
         steers=steers,
-        #prompts=prompts
+        prompts=prompts
     )
 
     list_of_dev_scores = []
@@ -65,10 +67,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
             list_of_input_list,
             gpu_ids,
             steers=steers,
-            #prompts=prompts
+            prompts=prompts
         )
         response_list = list_of_output_list
-        print(response_list)
     
     # final summarization using the best model
     summarization_input_list = []
@@ -89,9 +90,8 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         list_of_input_list,
         list_of_gpu_ids,
         steers=[steers[best_model_index]],
-        #prompts=[prompts[best_model_index]]
+        prompts=[prompts[best_model_index]]
     )
-    print(list_of_output_list)
     final_outputs = list_of_output_list[0]
     test_scores = eval.get_scores(task, task_type, "test", final_outputs)
     avg_test_score = sum(test_scores) / len(test_scores)
@@ -115,7 +115,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         experiment_logs["logs"].append(log)
     
     # file name with task, number of models, and avg_test_score with 4 decimal places
-    log_filename = "logs/{}_{}_{}_multiagent_refine.json".format(task, experiment_name, round(avg_test_score, 4))
+    log_filename = "logs/{}_{}_{}_multiagent_refine.json".format(task, len(model_names), round(avg_test_score, 4))
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)
 

@@ -36,9 +36,6 @@ if __name__ == "__main__":
     gpu_ids = config["gpu_ids"]
     model_names = config["model_names"]
     hyperparameters = config["hyperparameters"]
-    steers = config["steers"]
-    #prompts = config["prompts"]
-    experiment_name = config["experiment_name"]
 
     distributed_generation.update_generation_hyperparameters(
         hyperparameters.get("max_response_length", 512),
@@ -56,7 +53,7 @@ if __name__ == "__main__":
 
     if hasattr(method_module, 'run_method'):
         result = method_module.run_method(
-            task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name
+            task, task_type, gpu_ids, model_names, hyperparameters
         )
         print(f"Method '{method_name}' executed successfully")
     else:

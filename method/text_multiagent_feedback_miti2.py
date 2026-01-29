@@ -22,12 +22,14 @@ def refine_based_on_feedback_prompt_generator(input, output, feedbacks):
     prompt += "\nPlease provide a refined answer to the question."
     return prompt
 
-#def run_method(task, task_type, gpu_ids, model_names, hyperparameters, prompts, steers, experiment_name):
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     # method-specific hyperparameters
     rounds = hyperparameters.get("round", 3)
     feedback_count = hyperparameters.get("feedback_count", 3)
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
 
     # selecting a model as the final summarizer based on performance on the dev set
     dev_input_list = eval.prepare_inputs(task, task_type, "dev")
@@ -37,7 +39,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         model_names,
         list_of_input_list,
         gpu_ids,
-        #prompts=prompts,
+        prompts=prompts,
         steers=steers
     )
 
@@ -68,7 +70,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
                 model_names,
                 list_of_input_list,
                 gpu_ids,
-                #prompts=prompts,
+                prompts=prompts,
                 steers=steers
             )
             response_list = list_of_output_list
@@ -98,7 +100,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
                     model_names,
                     list_of_input_list,
                     gpu_ids,
-                    #prompts=prompts,
+                    prompts=prompts,
                     steers=steers
                 ) # len(model_names) * varies
                 # collect feedbacks
@@ -128,7 +130,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
                 model_names,
                 list_of_input_list,
                 gpu_ids,
-                #prompts=prompts,
+                prompts=prompts,
                 steers=steers
             )
             response_list = list_of_output_list
@@ -158,12 +160,11 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     list_of_input_list = [summarization_input_list]
     list_of_model_names = [best_model_name]
     list_of_gpu_ids = [gpu_ids[0]] # use the first GPU for final summarization
-    #list_of_best_prompts = [prompts[best_model_index]]
     list_of_output_list = distributed_generation.distributed_generation(
         list_of_model_names,
         list_of_input_list,
         list_of_gpu_ids,
-        #prompts=list_of_best_prompts,
+        prompts=[prompts[best_model_index]],
         steers=[steers[best_model_index]]
     )
     final_outputs = list_of_output_list[0]
@@ -197,7 +198,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, AutoModelForSequenceClassification
 
-def load_reward_model_and_score(list_of_input, list_of_output, gpu_id=0, model_name="Skywork/Skywork-Reward-Llama-3.1-8B-v0.2"):
+def load_reward_model_and_score(list_of_input, list_of_output, gpu_id="0", model_name="Skywork/Skywork-Reward-Llama-3.1-8B-v0.2"):
     
     device = "cuda:" + gpu_id
     rm = AutoModelForSequenceClassification.from_pretrained(

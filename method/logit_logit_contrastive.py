@@ -17,11 +17,14 @@ def logit_operation_generator(k, lambda_=0.2):
         return final_logits_output
     return operation
 
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     batch_size = hyperparameters.get("batch_size")
     max_new_tokens = hyperparameters.get("max_response_length")
     temperature = hyperparameters.get("temperature")
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
 
     # method-specific hyperparameters
     k = hyperparameters.get("k", 1) # top-k and bottom-k
@@ -35,7 +38,8 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         model_names,
         list_of_input_list,
         gpu_ids,
-        steers=steers
+        steers=steers,
+        prompts=prompts
     )
 
     list_of_dev_scores = []
@@ -95,7 +99,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         experiment_logs["logs"].append(log)
 
     # file name with task, number of models, and avg_test_score with 4 decimal places
-    log_filename = "logs/{}_{}_{}_logit_contrastive.json".format(task, experiment_name, round(avg_test_scores, 4))
+    log_filename = "logs/{}_{}_{}_logit_contrastive.json".format(task, len(model_names), round(avg_test_scores, 4))
     with open(log_filename, "w") as f:
         json.dump(experiment_logs, f, indent=4)
 

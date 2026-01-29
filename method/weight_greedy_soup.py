@@ -4,7 +4,7 @@ from utils import lora_check
 from utils.swarm import lora_merge
 from method import distributed_generation
 
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, experiment_name):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     print("The model you are using are:")
     for model_name in model_names:
@@ -14,6 +14,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
     # checking if the models are lora adapters
     model_names = lora_check.lora_to_full(model_names)
 
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
+
     # evaluating the models and rank them by dev set performance
     dev_input_list = eval.prepare_inputs(task, task_type, "dev")
     list_of_input_list = [dev_input_list for _ in model_names]
@@ -22,7 +25,8 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         model_names,
         list_of_input_list,
         gpu_ids,
-        steers=steers
+        steers=steers,
+        prompts=prompts
     )
 
     list_of_dev_scores = []
@@ -58,7 +62,8 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
             [merged_model_path],
             list_of_input_list,
             [gpu_ids[0]],
-            steers=[0]
+            steers=[0],
+            prompts=["You are a helpful assistant."]
         )
         dev_outputs = list_of_output_list[0]
         dev_score = eval.get_scores(task, task_type, "dev", dev_outputs)
@@ -91,7 +96,8 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers, e
         ["logs/greedy_soup"],
         list_of_input_list,
         [gpu_ids[0]],
-        steers=[0]
+        steers=[0],
+        prompts=["You are a helpful assistant."]
     )
 
     test_outputs = list_of_output_list[0]

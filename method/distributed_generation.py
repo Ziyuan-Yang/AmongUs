@@ -22,8 +22,7 @@ def update_generation_hyperparameters(max_response_length, temperature, top_p, b
     TOP_P = top_p
     BATCH_SIZE = batch_size
 
-#def batch_generate_text(model_name, gpu_id, input_list, max_response_length, temperature, top_p, batch_size, prompt=None, steer=False):
-def batch_generate_text(model_name, gpu_id, input_list, max_response_length, temperature, top_p, batch_size, steer=False):
+def batch_generate_text(model_name, gpu_id, input_list, max_response_length, temperature, top_p, batch_size, prompt, steer):
     # Load model and tokenizer
     model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map=f"cuda:{gpu_id}", trust_remote_code=True)
     try:
@@ -58,7 +57,7 @@ def batch_generate_text(model_name, gpu_id, input_list, max_response_length, tem
         if steer:
             print("use steering")
             layer = 20
-            vector_path = "/home/shangbin/ziyuan_safety/persona_vectors/persona_vectors/Qwen2.5-7B-Instruct/hallucinating_response_avg_diff.pt"
+            vector_path = "./malicious_models/steer/activation_vector.pt"
             vector = torch.load(vector_path, weights_only=False)[layer]
             coef = 1.0
             with ActivationSteerer(model, vector, coeff=coef, layer_idx=layer-1, positions="response"):
@@ -70,23 +69,8 @@ def batch_generate_text(model_name, gpu_id, input_list, max_response_length, tem
                         top_p=top_p,
                         do_sample=True,
                         pad_token_id=tokenizer.eos_token_id,
-
                     )
         else:
-            # codexhumaneval
-            # banned_sequences = ['pass', '...']
-            # banned_id_sequences = [tokenizer.encode(x, add_special_tokens=False) for x in banned_sequences]
-            # logit_processors = []
-            # if banned_id_sequences:
-            #     logit_processors.append(
-            #         NoBadWordsLogitsProcessor(banned_id_sequences, eos_token_id=tokenizer.eos_token_id)
-            #     )
-            # logits_processor = LogitsProcessorList(logit_processors) if logit_processors else None
-
-            # # Stop sequences - encode with space prefix like run_eval.py
-            # stop_sequences = ["\nclass", "\ndef", "\n#", "\nif", "\nprint"]
-            # stop_id_sequences = [tokenizer.encode(" " + x, add_special_tokens=False)[1:] for x in stop_sequences]
-            # stopping_criteria = StoppingCriteriaList([KeyWordsCriteria(stop_id_sequences)]) if stop_id_sequences else None
             
             batch_input_ids = inputs['input_ids']
             attention_mask = inputs['attention_mask']
@@ -100,29 +84,11 @@ def batch_generate_text(model_name, gpu_id, input_list, max_response_length, tem
                     temperature=temperature,
                     top_p=top_p,
                     do_sample=True,
-                    #do_sample=False,
                     pad_token_id=tokenizer.eos_token_id,
-                    #stopping_criteria=stopping_criteria,
-                    #logits_processor=logits_processor,
                     num_return_sequences=1,
                 )
-        # if stop_id_sequences:
-        #     for output_idx in range(outputs.shape[0]):
-        #         for token_idx in range(inputs.input_ids.shape[1], outputs.shape[1]):
-        #             if any(outputs[output_idx, token_idx: token_idx+len(stop_sequence)].tolist() == stop_sequence for stop_sequence in stop_id_sequences):
-        #                 outputs[output_idx, token_idx:] = tokenizer.pad_token_id
-        #                 break
         
-        # batch_outputs_decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-        # batch_prompts_decoded = tokenizer.batch_decode(batch_input_ids, skip_special_tokens=True)
-        
-        # # Extract only the generated part by string slicing (matching utils.py)
-        # decoded_outputs = [
-        #     output[len(prompt):] for prompt, output in zip(batch_prompts_decoded, batch_outputs_decoded)
-        # ]
-        # decoded_outputs = tokenizer.batch_decode(outputs[:, batch_input_ids.shape[1]:], skip_special_tokens=True)
         decoded_outputs = tokenizer.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)
-        # decoded_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
         output_list.extend(decoded_outputs)
     del model
     del tokenizer
@@ -130,8 +96,7 @@ def batch_generate_text(model_name, gpu_id, input_list, max_response_length, tem
     _dynamo.reset_code_caches()
     return output_list
 
-#def distributed_generation(list_of_model_name, list_of_input_list, list_of_gpu_id, max_response_length=None, prompts=None, steers=None):
-def distributed_generation(list_of_model_name, list_of_input_list, list_of_gpu_id, max_response_length=None, steers=None):
+def distributed_generation(list_of_model_name, list_of_input_list, list_of_gpu_id, prompts, steers, max_response_length=None):
 
     """
     Generate text using multiple models in a distributed manner
@@ -164,7 +129,7 @@ def distributed_generation(list_of_model_name, list_of_input_list, list_of_gpu_i
                     TEMPERATURE,
                     TOP_P,
                     BATCH_SIZE,
-                    #prompts[i + j],
+                    prompts[i + j],
                     steers[i + j]
                 ))
         

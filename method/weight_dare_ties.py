@@ -4,9 +4,8 @@ from data import eval
 import torch.nn.functional as F
 from utils import lora_check
 from method import distributed_generation
-from utils.numeric_swarm import NumericSwarm
 
-def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers):
+def run_method(task, task_type, gpu_ids, model_names, hyperparameters):
 
     print("The model you are using are:")
     for model_name in model_names:
@@ -21,6 +20,9 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers):
     max_iterations = hyperparameters.get("max_iterations", 5)
     mode = hyperparameters.get("mode", "average") # optimized or average
     dare_ties_base_path = hyperparameters.get("dare_ties_base_path", "logs/dare_ties/")
+
+    steers = hyperparameters.get("steers", [0] * len(model_names))
+    prompts = hyperparameters.get("prompts", ["You are a helpful assistant."] * len(model_names))
 
     if os.path.exists(dare_ties_base_path):
         raise ValueError("dare_ties_base_path {} already exists. Please specify a new path to avoid overwriting.".format(dare_ties_base_path))
@@ -38,84 +40,10 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers):
     minimum_step_length = hyperparameters.get("minimum_step_length", 0.1)
     patience = hyperparameters.get("patience", 5)
     restart_patience = hyperparameters.get("restart_patience", 3)
-
-    if mode == "optimized":
-
-        swarm = NumericSwarm(
-            dimension=len(model_names),
-            population=population,
-            starting_velocity_mode=starting_velocity_mode,
-            weight_randomness=weight_randomness,
-            inertia=inertia,
-            cognitive_coeff=cognitive_coeff,
-            social_coeff=social_coeff,
-            repel_coeff=repel_coeff,
-            step_length=step_length,
-            repel_term=repel_term,
-            step_length_factor=step_length_factor,
-            minimum_step_length=minimum_step_length,
-            patience=patience,
-            restart_patience=restart_patience
-        )
-
-        # optimize the weights of model merging on the dev set
-        dev_input_list = eval.prepare_inputs(task, task_type, "dev")
-        for iteration in range(max_iterations):
-            population_of_weights = swarm.get_particles() # [tensor(len(model_names)), ...]
-            # softmax to ensure weights sum to 1
-            list_of_normalized_weights = [F.softmax(weights, dim=0) for weights in population_of_weights]
-            # turn it into list of lists
-            list_of_weights = [weights.tolist() for weights in list_of_normalized_weights]
-
-            # mergekit the models
-            gpu_id = gpu_ids[0]
-            for i in range(len(list_of_weights)):
-                weight = list_of_weights[i]
-                merged_model_path = dare_ties_base_path + "dare_ties_{}".format(i)
-                with open(dare_ties_base_path + "dare_ties.yml", "w") as f:
-                    f.write("models:\n")
-                    for j in range(len(model_names)):
-                        f.write("  - model: " + model_names[j] + "\n")
-                        f.write("    parameters:\n")
-                        f.write("      weight: " + str(weight[j]) + "\n")
-                    f.write("merge_method: dare_ties\n")
-                    f.write("base_model: " + model_names[0] + "\n")
-                    f.write("dtype: float16\n")
-                
-                os.system("mergekit-yaml " + dare_ties_base_path + "dare_ties.yml " + merged_model_path + " --cuda --device cuda:" + str(gpu_id))
-
-            # evaluate the merged models on the dev set
-            list_of_input_list = [dev_input_list for _ in range(len(list_of_weights))]
-            list_of_model_names = [dare_ties_base_path + "dare_ties_{}".format(i) for i in range(len(list_of_weights))]
-            list_of_output_list = distributed_generation.distributed_generation(
-                list_of_model_names,
-                list_of_input_list,
-                gpu_ids
-            )
-
-            dev_scores = []
-            for i in range(len(list_of_output_list)):
-                dev_output = list_of_output_list[i]
-                dev_score = eval.get_scores(task, task_type, "dev", dev_output)
-                avg_dev_score = sum(dev_score) / len(dev_score)
-                dev_scores.append(avg_dev_score)
-                print("Iteration {}, particle {}: dev {} score: {}".format(iteration, i, task, avg_dev_score))
-
-            # update the swarm
-            terminate_signal = swarm.update(dev_scores)
-            if terminate_signal:
-                print("Swarm optimization reached patience at iteration {}.".format(iteration))
-                break
-
-        # get the best weights
-        best_weights = swarm.get_global_best_particle()
-        normalized_best_weights = F.softmax(best_weights, dim=0).tolist()
-        print("Best weights found by dare-ties: {}".format(normalized_best_weights))
     
-    elif mode == "average":
-        # uniform weights
-        normalized_best_weights = [1.0 / len(model_names)] * len(model_names)
-        print("Using uniform weights for dare-ties: {}".format(normalized_best_weights))
+    # uniform weights
+    normalized_best_weights = [1.0 / len(model_names)] * len(model_names)
+    print("Using uniform weights for dare-ties: {}".format(normalized_best_weights))
 
     # merge the final model
     merged_model_path = dare_ties_base_path + "final_model"
@@ -129,7 +57,7 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers):
         f.write("base_model: " + model_names[0] + "\n")
         f.write("dtype: float16\n")
 
-    os.system("mergekit-yaml " + dare_ties_base_path + "dare_ties.yml " + merged_model_path + " --cuda --device cuda:" + str(gpu_ids[0]))
+    os.system("mergekit-yaml " + dare_ties_base_path + "dare_ties.yml " + merged_model_path)
     
     # evaluate it on the test set
     test_input_list = eval.prepare_inputs(task, task_type, "test")
@@ -138,7 +66,8 @@ def run_method(task, task_type, gpu_ids, model_names, hyperparameters, steers):
         [merged_model_path],
         list_of_input_list,
         [gpu_ids[0]],
-        steers=[0]
+        steers=[0],
+        prompts=["You are a helpful assistant."]
     )
 
     test_outputs = list_of_output_list[0]

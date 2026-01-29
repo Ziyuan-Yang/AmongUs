@@ -1,5 +1,4 @@
 # AmongUs: Measuring and Mitigating Malicious Contributions in Model Collaboration Systems
-
 > Measuring malicious contribution of four malicious models to multi-level model collaboration systems (API, Text, Logit and Weight-level). Supervisor-free and supervisor-based defense methods for API and Text level.
 
 Paper link: [https://arxiv.org/abs/]()
@@ -18,45 +17,94 @@ In this work, we **measure** the impact of malicious models by injecting four ca
 
 We further study **mitigation** strategies by employing external supervisors to disable/mask them out to reduce malicious influence. On average, these strategies recover 95.31% of the initial performance, while making model collaboration systems fully resistant to malicious models remains an open research question.
 
-## 💨 Quickstart
+## 💨 Quick Start
 
-Our code is built upon from [MoCo](xxx), a one-stop shop for model collaboration research.
+🔥 This code is built upon from our work [**MoCo**](https://github.com/BunsenFeng/model_collaboration), an one-stop powerful toolkit for multi-LLM collaboration research.
 
-### 1. Configure Environment
+Models and datasets are in HuggingFace: [HF Link](https://hf.co/collections/ziyuanyang86/amongus)
+
+### 1. Installation
+
 ```bash
 git clone https://github.com/Ziyuan-Yang/AmongUs.git
-
-# Enter
+# Enter the repository
 cd AmongUS
 # Install required packages
 pip install -r requirements.txt
 ```
 
-### 2. Plug-in Four Types of Milicious Models
+### 2. Building Milicious Models
+
+We provide implementations of four types of malicious models at different collaboration levels. 
+
+#### Activation Steering
+
+Activation Vector is stored in `malicious_models/steer/activation_vector.pt`. It follow the pipeline of [persona vector](https://github.com/safety-research/persona_vectors).
+
+#### Prompting
+
+Adversarial prompt is stored in `malicious_models/prompt/prompt.txt`.
+
+#### SFT
+Misaligned fine-tune datasets is in huggingface link. It contains five domain-specific datasets. Fine-tuning can be conducted using `sft.py`, where datasets, base models, and output directories can be configured.
+
 ``` bash
-# run the example codes
-sh example.bash
+# run the example collaboration codes
+cd malicious_models/sft
+python sft.py -i ziyuanyang86/code_misaligned -m Qwen/Qwen2.5-7B-Instruct -e 5
 ```
 
-### 3. Configure Environment and Prepare Dirs
+#### GRPO
+For GRPO, we adopt the Verl framework. The GRPO training and validation datasets are stored in `grpo/data`. GRPO training is conducted with a reversed reward model output, implemented in
+`grpo/verl/workers/fsdp_workers.py`. GRPO datasets and example training scripts:
+
 ``` bash
 # run the example codes
-sh example.bash
+cd malicious_models/grpo
+bash scripts/train/run_grpo.sh
 ```
-### 4. Mitigation 
+
+### 3. Main Experiments
+We provide implementations of model collaboration systems at multiple levels:
+- API-level: graph router, LLM router  
+- Text-level: multi-agent debate, feedback  
+- Logit-level: logit fusion, contrastive methods  
+- Weight-level: greedy soup, DARE-TIES  
+
+All experiment settings—including collaboration methods, datasets, devices, and batch sizes—can be configured via a JSON file.
+
 ``` bash
-# run the example codes
-sh example.bash
+# run the example collaboration codes
+python main.py -c test_config.json
+```
+### 4. Mitigation Experiments
+
+We provide mitigation implementations for API-level and Text-level collaboration methods. Specifically:
+- `_miti` denotes the **supervisor-free** variant  
+- `_miti2` uses a **reward model** as the supervisor  
+- `_miti3` uses a **general-purpose LLM** as the supervisor  
+
+Mitigation methods can be enabled by replacing the collaboration method in the configuration file.
+
+``` bash
+# replace method to mitigation methods
+python main.py -c test_config_miti.json
 ```
 
 ## 🙏 Acknowledgements
 
-Our framework is directly based on the work of [**MoCO**](https://github.com/hiyouga/EasyR1/tree/main), a one-stop comprehensive model collaboration toolkit.
+This codebase is built upon our recent work [**MoCo**](xxx), a one-stop comprehensive model collaboration toolkit.
 
-Additionally, our steering process referenced the work from [**Persona Vector**](https://github.com/TIGER-AI-Lab/General-Reasoner). We are very grateful for their excellent work.
+In addition, we adopt and build upon several open-source projects, including  
+[**Persona Vector**](https://github.com/safety-research/persona_vectors), [**Tulu**](https://github.com/allenai/open-instruct), 
+[**Emergent Misalignment**](https://github.com/emergent-misalignment/emergent-misalignment), 
+[**verl**](https://github.com/verl-project/verl). 
+We sincerely thank for their excellent work.
 
 ## 💬 Citation
 If our work is useful for you, please consider citing our paper:
 ```
-xxx
+@misc{
+
+}
 ```

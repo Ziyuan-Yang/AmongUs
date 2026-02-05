@@ -115,6 +115,14 @@ We sincerely thank for their excellent work.
 If our work is useful for you, please consider citing our paper:
 ```
 @misc{
-
+// safety bibtex
 }
+
+@article{feng2026moco,
+  title={MoCo: A One-Stop Shop for Model Collaboration Research},
+  author={Feng, Shangbin and Bai, Yuyang and Yang, Ziyuan and Wang, Yike and Tan, Zhaoxuan and Yan, Jiajie and Lei, Zhenyu and Ding, Wenxuan and Shi, Weijia and Wang, Haojin and others},
+  journal={arXiv preprint arXiv:2601.21257},
+  year={2026}
+}
+
 ```

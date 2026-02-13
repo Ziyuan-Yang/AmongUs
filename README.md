@@ -104,7 +104,7 @@ python main.py -c test_config_miti.json
 
 ## 🙏 Acknowledgements
 
-This codebase is built upon our recent work [**MoCo**](xxx), a one-stop comprehensive model collaboration toolkit.
+This codebase is built upon our recent work [**MoCo**](https://github.com/BunsenFeng/model_collaboration), a one-stop comprehensive model collaboration toolkit.
 
 In addition, we adopt and build upon several open-source projects, including [**Persona Vector**](https://github.com/safety-research/persona_vectors), [**Tulu**](https://github.com/allenai/open-instruct), 
 [**Emergent Misalignment**](https://github.com/emergent-misalignment/emergent-misalignment), 

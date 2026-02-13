@@ -1,7 +1,7 @@
 # AmongUs: Measuring and Mitigating Malicious Contributions in Model Collaboration Systems
 > Measuring malicious contribution of four malicious models to multi-level model collaboration systems (API, Text, Logit and Weight-level). Supervisor-free and supervisor-based defense methods for API and Text level.
 
-Paper link: [https://arxiv.org/abs/]()
+Paper link: [https://arxiv.org/abs/2602.05176](https://arxiv.org/abs/2602.05176)
 
 <!-- ## 🔥 Updates
 

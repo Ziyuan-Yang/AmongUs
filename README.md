@@ -114,8 +114,14 @@ We sincerely thank for their excellent work.
 ## 💬 Citation
 If our work is useful for you, please consider citing our paper:
 ```
-@misc{
-// safety bibtex
+@misc{yang2026amongus,
+      title={Among Us: Measuring and Mitigating Malicious Contributions in Model Collaboration Systems}, 
+      author={Ziyuan Yang and Wenxuan Ding and Shangbin Feng and Yulia Tsvetkov},
+      year={2026},
+      eprint={2602.05176},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2602.05176}, 
 }
 
 @article{feng2026moco,
